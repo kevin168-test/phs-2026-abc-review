@@ -35,13 +35,44 @@ body {
 
 .hidden { display: none !important; }
 
-/* Dashboard */
-header {
-    text-align: center;
-    margin-bottom: 30px;
+/* Mode Selector Tabs */
+.mode-selector {
+    display: flex;
+    background: #e0e6ed;
+    padding: 4px;
+    border-radius: 12px;
+    margin: 15px auto;
+    max-width: 300px;
 }
 
-h1 { font-size: 1.8rem; margin-bottom: 5px; }
+.mode-selector button {
+    flex: 1;
+    border: none;
+    background: none;
+    padding: 8px 15px;
+    border-radius: 10px;
+    font-weight: bold;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 0.9rem;
+}
+
+.mode-selector button.active {
+    background: white;
+    color: var(--primary-color);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+#mode-desc {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+}
+
+.subject-card.mock {
+    border-left: 5px solid #f1c40f;
+}
 
 .subject-grid {
     display: grid;

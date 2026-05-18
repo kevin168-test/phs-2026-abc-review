@@ -28,6 +28,7 @@ async function init() {
         const base64 = await response.text();
         const jsonStr = new TextDecoder().decode(Uint8Array.from(atob(base64), c => c.charCodeAt(0)));
         allQuestions = JSON.parse(jsonStr);
+        setupEventListeners();
         renderDashboard();
         updateMistakeCount();
     } catch (error) {
@@ -36,10 +37,27 @@ async function init() {
         try {
             const resp = await fetch('data/questions.json');
             allQuestions = await resp.json();
+            setupEventListeners();
             renderDashboard();
             updateMistakeCount();
         } catch(e) {}
     }
+}
+
+function setupEventListeners() {
+    document.getElementById('tab-normal').onclick = () => switchMode(false);
+    document.getElementById('tab-mock').onclick = () => switchMode(true);
+    document.getElementById('btn-review-mistakes').onclick = startMistakeQuiz;
+    document.getElementById('btn-full-mock').onclick = () => startQuiz(null, true);
+}
+
+function switchMode(mock) {
+    isMockMode = mock;
+    document.getElementById('tab-normal').classList.toggle('active', !mock);
+    document.getElementById('tab-mock').classList.toggle('active', mock);
+    document.getElementById('mode-desc').innerText = mock ? '模式：40 分鐘 / 40 題 (限時考驗)' : '模式：不限時 / 20 題 (即時解析)';
+    document.getElementById('btn-full-mock').classList.toggle('hidden', !mock);
+    renderDashboard();
 }
 
 function updateMistakeCount() {
@@ -56,27 +74,24 @@ function renderDashboard() {
     Object.keys(allQuestions).forEach(fileId => {
         const subject = allQuestions[fileId];
         const card = document.createElement('div');
-        card.className = 'subject-card';
+        card.className = `subject-card ${isMockMode ? 'mock' : ''}`;
         card.innerHTML = `
             <div class="title">${subject.title.replace('歷年(110-114) ', '')}</div>
-            <div class="stats">共 ${subject.questions.length} 題 | ${subject.categories.length} 個單元</div>
+            <div class="stats">共 ${subject.questions.length} 題 | ${isMockMode ? '模擬 40 題' : '練習 20 題'}</div>
         `;
-        card.onclick = () => startQuiz(fileId);
+        card.onclick = () => startQuiz(fileId, isMockMode);
         list.appendChild(card);
     });
-
-    document.getElementById('btn-review-mistakes').onclick = startMistakeQuiz;
-    document.getElementById('btn-mock-exam').onclick = () => startQuiz(null, true);
 }
 
 // Sampling Logic: Weighted Random + Recent Filter
 function startQuiz(fileId, mock = false) {
     isMockMode = mock;
-    const targetSize = mock ? 40 : 20;
+    const targetSize = isMockMode ? 40 : 20;
     let sampled = [];
 
-    if (mock) {
-        // Mock Mode: Draw from all subjects proportionally
+    if (fileId === null) {
+        // Full Comprehensive Mock
         const totalQuestionsAll = Object.values(allQuestions).reduce((sum, s) => sum + s.questions.length, 0);
         Object.keys(allQuestions).forEach(fId => {
             const subject = allQuestions[fId];
@@ -84,7 +99,7 @@ function startQuiz(fileId, mock = false) {
             sampled = sampled.concat(drawFromPool(subject.questions, subTarget));
         });
     } else {
-        // Normal Mode: Draw from specific subject proportionally
+        // Specific Subject (Normal or Mock)
         const subject = allQuestions[fileId];
         subject.categories.forEach(cat => {
             const catQuestions = subject.questions.filter(q => q.category === cat.name);
@@ -95,16 +110,14 @@ function startQuiz(fileId, mock = false) {
         });
     }
 
-    // Shuffle and trim
+    // Shuffle and trim to exact size
     sampled = sampled.sort(() => 0.5 - Math.random());
     if (sampled.length > targetSize) {
         sampled = sampled.slice(0, targetSize);
     } else if (sampled.length < targetSize) {
-        // Fill remaining from all questions
-        const allPool = Object.values(allQuestions).flatMap(s => s.questions);
-        const remaining = allPool.filter(q => !sampled.find(s => s.id === q.id));
-        const extra = drawFromPool(remaining, targetSize - sampled.length);
-        sampled = sampled.concat(extra);
+        const pool = fileId ? allQuestions[fileId].questions : Object.values(allQuestions).flatMap(s => s.questions);
+        const remaining = pool.filter(q => !sampled.find(s => s.id === q.id));
+        sampled = sampled.concat(drawFromPool(remaining, targetSize - sampled.length));
     }
 
     currentQuiz = sampled.sort(() => 0.5 - Math.random());
