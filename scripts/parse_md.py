@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import base64
 
 def parse_md_file(file_path):
     with open(file_path, 'r', encoding='utf-8') as f:
@@ -8,10 +9,9 @@ def parse_md_file(file_path):
 
     # 1. Extract Subject Title
     subject_match = re.search(r'### 📋 (.*?) 主題索引表', content)
-    subject_title = subject_match.group(1).strip() if subject_match else os.path.basename(file_path)
+    subject_title = subject_match.group(1).strip() if subject_match else os.path.basename(file_path).replace('.md', '')
 
-    # 2. Extract Index Table for Categories
-    # Format: | **Category Name** | 1 - 29 |
+    # 2. Extract Categories
     categories = []
     index_table_match = re.search(r'\| 類別 \| 題號 \|.*?\| :--- \| :--- \|(.*?)\n---', content, re.DOTALL)
     if index_table_match:
@@ -21,7 +21,6 @@ def parse_md_file(file_path):
             if len(cols) >= 3:
                 cat_name = cols[1].replace('**', '').strip()
                 range_str = cols[2].strip()
-                # Parse range like "1 - 29" or "161 - 167"
                 range_match = re.search(r'(\d+)\s*-\s*(\d+)', range_str)
                 if range_match:
                     categories.append({
@@ -31,16 +30,18 @@ def parse_md_file(file_path):
                     })
 
     # 3. Extract Questions
-    # Pattern to find each question block
-    # #### **第 X 題** ... [Tags]
     questions = []
     q_blocks = re.findall(r'#### \*\*第 (\d+) 題\*\*(.*?)(?=(?:#### \*\*第 \d+ 題\*\*|---|$))', content, re.DOTALL)
     
+    file_prefix = os.path.basename(file_path).replace('.md', '').replace(' ', '_')
+
     for q_num_str, q_body in q_blocks:
         q_num = int(q_num_str)
         
+        # Unique ID based on file and question number
+        q_id = f"{file_prefix}_{q_num:03d}"
+
         # Extract Question Text and Options
-        # **題目：** ... (A) ... (B) ... (C) ... (D) ...
         q_text_match = re.search(r'\*\*題目：\*\*(.*?)\(A\)', q_body, re.DOTALL)
         q_text = q_text_match.group(1).strip() if q_text_match else ""
         
@@ -51,24 +52,20 @@ def parse_md_file(file_path):
             if opt_match:
                 options[opt] = opt_match.group(1).strip()
 
-        # Extract Answer, Hint, Explanation, Warning
+        # Extract Meta
         ans_match = re.search(r'> \*\*答案：\*\*\s*[`*]*([A-D#])[`*]*', q_body)
         answer = ans_match.group(1) if ans_match else ""
         
         hint_match = re.search(r'> \*\*💡 一句話判斷：\*\*(.*?)\n', q_body)
         hint = hint_match.group(1).strip() if hint_match else ""
         
-        # Explanation can be multi-line
         expl_match = re.search(r'> \*\*📋 選項專業解析：\*\*(.*?)(?=> \*\*⚠️|$)', q_body, re.DOTALL)
         explanation = expl_match.group(1).strip() if expl_match else ""
         
         warn_match = re.search(r'> \*\*⚠️ 易錯提醒：\*\*(.*?)(?=\n\d+年|$)', q_body, re.DOTALL)
         warning = warn_match.group(1).strip() if warn_match else ""
         
-        tag_match = re.search(r'(\d+年｜.*?｜.*?)$', q_body.strip())
-        tags = tag_match.group(1).strip() if tag_match else ""
-
-        # Map to category based on q_num
+        # Categorize
         q_category = "未分類"
         for cat in categories:
             if cat['start'] <= q_num <= cat['end']:
@@ -76,26 +73,23 @@ def parse_md_file(file_path):
                 break
 
         questions.append({
-            "id": f"{os.path.basename(file_path)}_{q_num}",
-            "num": q_num,
+            "id": q_id,
+            "subject": subject_title,
             "category": q_category,
             "question": q_text,
             "options": options,
             "answer": answer,
             "hint": hint,
             "explanation": explanation,
-            "warning": warning,
-            "tags": tags
+            "warning": warning
         })
 
     return {
         "title": subject_title,
-        "categories": categories,
         "questions": questions
     }
 
 def main():
-    # Use relative path to ensure it works in the app-2.0 structure
     script_dir = os.path.dirname(os.path.abspath(__file__))
     base_dir = os.path.abspath(os.path.join(script_dir, '..', '..'))
     app_dir = os.path.abspath(os.path.join(script_dir, '..'))
@@ -109,44 +103,43 @@ def main():
         '06_健康社會行為學__選擇題_索引分類.md'
     ]
     
-    all_data = {}
-    global_q_counter = 1
-    
+    all_questions = []
+    subjects_info = []
+
     for f in files:
         file_path = os.path.join(base_dir, f)
         if os.path.exists(file_path):
             print(f"Parsing {f}...")
-            subject_data = parse_md_file(file_path)
-            
-            # Inject global IDs
-            for q in subject_data['questions']:
-                q['id'] = f"Q_{global_q_counter:04d}"
-                global_q_counter += 1
-                
-            all_data[f] = subject_data
+            data = parse_md_file(file_path)
+            all_questions.extend(data['questions'])
+            subjects_info.append({
+                "id": os.path.basename(f).replace('.md', ''),
+                "title": data['title'],
+                "count": len(data['questions'])
+            })
         else:
             print(f"Warning: {file_path} not found.")
 
-    data_dir = os.path.join(app_dir, 'data')
-    if not os.path.exists(data_dir):
-        os.makedirs(data_dir)
+    final_data = {
+        "subjects": subjects_info,
+        "questions": all_questions
+    }
 
-    # 1. Output to JSON (for debugging)
-    output_json_path = os.path.join(data_dir, 'questions.json')
-    with open(output_json_path, 'w', encoding='utf-8') as out_f:
-        json.dump(all_data, out_f, ensure_ascii=False, indent=2)
+    # Output files
+    data_dir = os.path.join(app_dir, 'data')
+    if not os.path.exists(data_dir): os.makedirs(data_dir)
+
+    # 1. JSON
+    with open(os.path.join(data_dir, 'questions.json'), 'w', encoding='utf-8') as out_f:
+        json.dump(final_data, out_f, ensure_ascii=False, indent=2)
     
-    # 2. Output to Base64 encoded DAT file
-    import base64
-    output_dat_path = os.path.join(data_dir, 'questions.dat')
-    json_str = json.dumps(all_data, ensure_ascii=False, separators=(',', ':'))
-    encoded_bytes = base64.b64encode(json_str.encode('utf-8'))
-    
-    with open(output_dat_path, 'wb') as out_f:
-        out_f.write(encoded_bytes)
+    # 2. Base64 DAT
+    json_str = json.dumps(final_data, ensure_ascii=False, separators=(',', ':'))
+    encoded = base64.b64encode(json_str.encode('utf-8'))
+    with open(os.path.join(data_dir, 'questions.dat'), 'wb') as out_f:
+        out_f.write(encoded)
         
-    print(f"Successfully saved to {output_json_path}")
-    print(f"Successfully saved to {output_dat_path} (Obfuscated)")
+    print(f"Successfully processed {len(all_questions)} questions across {len(subjects_info)} subjects.")
 
 if __name__ == "__main__":
     main()
