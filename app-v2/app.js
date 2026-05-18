@@ -14,6 +14,10 @@ let isMockMode = true;
 // Initialize
 async function init() {
     try {
+        if (!window.Dexie) {
+            throw new Error("找不到 Dexie.js，請確認 lib/dexie.min.js 是否有上傳成功。");
+        }
+        
         const hasData = await db.questions.count();
         if (hasData === 0) {
             await loadDataIntoDB();
@@ -23,19 +27,32 @@ async function init() {
         hideLoader();
     } catch (e) {
         console.error('Init failed:', e);
-        alert('初始化失敗，請重新整理頁面。');
+        document.getElementById('loader').innerHTML = `
+            <div style="color: red; padding: 20px; text-align: center;">
+                <h3>初始化失敗</h3>
+                <p>${e.message}</p>
+                <button onclick="location.reload()" style="padding: 10px 20px; margin-top: 10px;">重新整理</button>
+            </div>
+        `;
     }
 }
 
 async function loadDataIntoDB() {
-    const resp = await fetch('data/questions.dat');
-    const base64 = await resp.text();
-    // Decode base64 with UTF-8 support
-    const jsonStr = new TextDecoder().decode(Uint8Array.from(atob(base64), c => c.charCodeAt(0)));
-    const data = JSON.parse(jsonStr);
-    
-    await db.questions.bulkAdd(data.questions);
-    localStorage.setItem('subjects', JSON.stringify(data.subjects));
+    try {
+        const resp = await fetch('./data/questions.dat');
+        if (!resp.ok) {
+            throw new Error(`無法讀取題庫檔案 (HTTP ${resp.status})，請確認 data/questions.dat 是否有上傳。`);
+        }
+        const base64 = await resp.text();
+        // Decode base64 with UTF-8 support
+        const jsonStr = new TextDecoder().decode(Uint8Array.from(atob(base64.trim()), c => c.charCodeAt(0)));
+        const data = JSON.parse(jsonStr);
+        
+        await db.questions.bulkAdd(data.questions);
+        localStorage.setItem('subjects', JSON.stringify(data.subjects));
+    } catch (e) {
+        throw new Error("解析題庫失敗：" + e.message);
+    }
 }
 
 function hideLoader() {
