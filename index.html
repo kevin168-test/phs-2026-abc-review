@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>公衛師複習 PWA</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+</head>
+<body>
+    <div id="app">
+        <!-- Dashboard / Subject Selection -->
+        <div id="dashboard" class="view">
+            <header>
+                <h1>公衛師複習系統</h1>
+                <p>請選擇科目開始 20 題衝刺</p>
+            </header>
+            <div class="subject-grid" id="subject-list">
+                <!-- Subjects will be injected here -->
+            </div>
+            <div class="special-modes">
+                <button id="btn-mock-exam" class="mode-card mock-mode">
+                    <span class="icon">🏆</span>
+                    <span class="label">國考模擬 (40題/40分)</span>
+                </button>
+                <button id="btn-review-mistakes" class="mode-card mistake-mode">
+                    <span class="icon">📝</span>
+                    <span class="label">錯題重測</span>
+                    <span class="count" id="mistake-count">0</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Quiz View -->
+        <div id="quiz-view" class="view hidden">
+            <nav class="quiz-nav">
+                <button id="btn-exit-quiz">✕ 離開</button>
+                <div id="quiz-timer" class="timer hidden">40:00</div>
+                <div class="progress-container">
+                    <div id="progress-bar" style="width: 0%;"></div>
+                </div>
+                <span id="progress-text">1 / 20</span>
+            </nav>
+            
+            <div id="question-container">
+                <!-- Question will be injected here -->
+            </div>
+
+            <footer class="quiz-footer">
+                <button id="btn-next-question" class="hidden">下一題</button>
+                <button id="btn-finish-quiz" class="hidden">完成</button>
+            </footer>
+        </div>
+
+        <!-- Result View -->
+        <div id="result-view" class="view hidden">
+            <header>
+                <h2>測驗結束</h2>
+                <div class="score-display">
+                    <span id="correct-count">0</span> / <span id="total-count">20</span>
+                </div>
+            </header>
+            <div id="result-summary"></div>
+            <button onclick="location.reload()">回到首頁</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

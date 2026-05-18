@@ -1,0 +1,21 @@
+{
+  "name": "公衛師複習衝刺",
+  "short_name": "公衛師複習",
+  "description": "iPad 專屬公衛師考試複習 PWA",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#f0f4f8",
+  "theme_color": "#4a90e2",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
