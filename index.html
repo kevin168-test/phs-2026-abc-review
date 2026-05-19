@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>PHS 模擬考系統 2026</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+</head>
+<body>
+    <div id="app">
+        <!-- Dashboard View -->
+        <div id="dashboard" class="view">
+            <header>
+                <h1>公衛師複習系統</h1>
+                <p>極簡實戰版 · 45 分鐘模擬考</p>
+            </header>
+            
+            <div id="subject-list" class="subject-grid">
+                <!-- Subjects will be injected here -->
+            </div>
+
+            <div style="margin-top: 40px; text-align: center; color: var(--text-muted); font-size: 0.8rem;">
+                © 2026 PHS Review System
+            </div>
+        </div>
+
+        <!-- Quiz View -->
+        <div id="quiz-view" class="view hidden">
+            <nav class="quiz-nav">
+                <button id="btn-exit" class="nav-btn btn-secondary" style="padding: 8px 15px;">✕ 離開</button>
+                <div id="timer" class="timer">45:00</div>
+                <div id="progress-text" style="font-weight: bold;">1 / 40</div>
+            </nav>
+            
+            <div class="progress-container">
+                <div id="progress-bar" class="progress-bar" style="width: 0%;"></div>
+            </div>
+
+            <div id="action-bar" class="action-bar hidden">
+                <button id="btn-clear-mistakes" class="btn-danger">🗑️ 清除本科錯題</button>
+            </div>
+
+            <main id="question-container">
+                <!-- Question content -->
+            </main>
+
+            <footer class="quiz-footer">
+                <button id="btn-prev" class="nav-btn btn-secondary">上一題</button>
+                <button id="btn-next" class="nav-btn btn-secondary">下一題</button>
+                <button id="btn-submit" class="nav-btn btn-primary hidden">提交試卷</button>
+            </footer>
+        </div>
+
+        <!-- Result View -->
+        <div id="result-view" class="view hidden">
+            <header>
+                <h2>測驗結束</h2>
+            </header>
+
+            <div class="score-display">
+                <div class="score-circle">
+                    <div id="score-num" class="score-num">0</div>
+                    <div id="score-total" class="score-total">/ 40</div>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-bottom: 30px;">
+                <button onclick="location.reload()" class="nav-btn btn-primary" style="width: 200px;">回到首頁</button>
+            </div>
+
+            <section class="review-section">
+                <h3 id="review-title">錯題回顧</h3>
+                <div id="review-list" class="review-list">
+                    <!-- Wrong questions will be listed here -->
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
